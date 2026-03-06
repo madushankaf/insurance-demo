@@ -1,5 +1,6 @@
 import ballerina/http;
 import ballerina/log;
+import ballerina/lang.value;
 
 // Service port configuration
 configurable int servicePort = 8081;
@@ -69,7 +70,17 @@ service /api/v1 on new http:Listener(servicePort) {
 function createJsonResponse(int statusCode, anydata body) returns http:Response {
     http:Response res = new;
     res.statusCode = statusCode;
-    res.setJsonPayload(<json>body);
+    json|error jsonPayload = value:toJson(body);
+    if (jsonPayload is error) {
+        log:printError("Failed to convert response to JSON", jsonPayload);
+        res.statusCode = 500;
+        res.setJsonPayload({
+            "error": "Internal server error",
+            "message": "Failed to serialize response"
+        });
+    } else {
+        res.setJsonPayload(jsonPayload);
+    }
     return res;
 }
 
