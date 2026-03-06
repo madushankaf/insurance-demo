@@ -1,0 +1,234 @@
+openapi: 3.0.3
+info:
+  title: Insurance Quote API
+  description: |
+    REST API for generating auto insurance quotes with bundle recommendations.
+    This API supports the customer acquisition and quote journey, enabling potential
+    customers to request insurance quotes and receive bundle recommendations.
+    
+    **Use Case**: Customer Acquisition / Quote Journey
+    
+    This API can be published through WSO2 API Manager to enable:
+    - Rate limiting and throttling
+    - Analytics and monitoring
+    - Security policies (authentication/authorization)
+    - API versioning
+    - Request/response transformation
+    - Caching strategies
+  version: 1.0.0
+  contact:
+    name: Insurance API Team
+    email: api-support@insurance.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api.insurance.com/v1
+    description: Production server (example)
+
+tags:
+  - name: Quotes
+    description: Quote generation and bundle recommendations
+
+paths:
+  /quotes/auto:
+    post:
+      tags:
+        - Quotes
+      summary: Generate auto insurance quote
+      description: |
+        Accepts a quote request and returns a premium estimate along with bundle recommendations.
+        The premium calculation uses hardcoded business rules based on age, vehicle type, year, and state.
+        Bundle recommendations are provided based on existing insurance products.
+      operationId: generateAutoQuote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteRequest'
+            examples:
+              example1:
+                summary: Standard quote request
+                value:
+                  firstName: "John"
+                  lastName: "Doe"
+                  age: 34
+                  vehicleType: "sedan"
+                  vehicleYear: 2022
+                  state: "CA"
+                  hasHomeInsurance: false
+                  hasRentersInsurance: true
+              example2:
+                summary: Quote with existing home insurance
+                value:
+                  firstName: "Jane"
+                  lastName: "Smith"
+                  age: 45
+                  vehicleType: "suv"
+                  vehicleYear: 2023
+                  state: "NY"
+                  hasHomeInsurance: true
+                  hasRentersInsurance: false
+      responses:
+        '200':
+          description: Quote generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuoteResponse'
+              examples:
+                success:
+                  summary: Successful quote with bundle recommendation
+                  value:
+                    quoteId: "Q-1001"
+                    product: "auto"
+                    monthlyPremium: 145.50
+                    currency: "USD"
+                    eligibleForBundle: true
+                    recommendedBundleProduct: "home"
+                    estimatedBundleSavings: 18.75
+                    message: "Customer is eligible for bundling auto with home insurance."
+                noBundle:
+                  summary: Quote without bundle recommendation
+                  value:
+                    quoteId: "Q-1002"
+                    product: "auto"
+                    monthlyPremium: 120.00
+                    currency: "USD"
+                    eligibleForBundle: false
+                    recommendedBundleProduct: null
+                    estimatedBundleSavings: null
+                    message: "Quote generated successfully."
+        '400':
+          description: Bad request - Invalid input or validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidJson:
+                  summary: Invalid JSON payload
+                  value:
+                    error: "Invalid JSON payload"
+                    message: "Failed to parse request body"
+                validationError:
+                  summary: Validation failure
+                  value:
+                    error: "Validation failed"
+                    message: "Age must be between 18 and 100"
+
+components:
+  schemas:
+    QuoteRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - age
+        - vehicleType
+        - vehicleYear
+        - state
+        - hasHomeInsurance
+        - hasRentersInsurance
+      properties:
+        firstName:
+          type: string
+          description: Customer's first name
+          example: "John"
+        lastName:
+          type: string
+          description: Customer's last name
+          example: "Doe"
+        age:
+          type: integer
+          description: Customer's age (must be between 18 and 100)
+          minimum: 18
+          maximum: 100
+          example: 34
+        vehicleType:
+          type: string
+          description: Type of vehicle (e.g., sedan, suv, truck)
+          example: "sedan"
+        vehicleYear:
+          type: integer
+          description: Year of the vehicle (must be between 1900 and 2030)
+          minimum: 1900
+          maximum: 2030
+          example: 2022
+        state:
+          type: string
+          description: State where the vehicle is registered (2-letter state code)
+          example: "CA"
+        hasHomeInsurance:
+          type: boolean
+          description: Whether the customer currently has home insurance
+          example: false
+        hasRentersInsurance:
+          type: boolean
+          description: Whether the customer currently has renters insurance
+          example: true
+
+    QuoteResponse:
+      type: object
+      required:
+        - quoteId
+        - product
+        - monthlyPremium
+        - currency
+        - eligibleForBundle
+        - message
+      properties:
+        quoteId:
+          type: string
+          description: Unique identifier for the quote
+          example: "Q-1001"
+        product:
+          type: string
+          description: Insurance product type
+          example: "auto"
+        monthlyPremium:
+          type: number
+          format: float
+          description: Calculated monthly premium in USD
+          example: 145.50
+        currency:
+          type: string
+          description: Currency code
+          example: "USD"
+        eligibleForBundle:
+          type: boolean
+          description: Whether the customer is eligible for bundle discounts
+          example: true
+        recommendedBundleProduct:
+          type: string
+          nullable: true
+          description: Recommended product to bundle with auto insurance (home or renters)
+          example: "home"
+        estimatedBundleSavings:
+          type: number
+          format: float
+          nullable: true
+          description: Estimated monthly savings from bundling
+          example: 18.75
+        message:
+          type: string
+          description: Human-readable message about the quote and bundle recommendation
+          example: "Customer is eligible for bundling auto with home insurance."
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type or category
+          example: "Validation failed"
+        message:
+          type: string
+          description: Detailed error message
+          example: "Age must be between 18 and 100"

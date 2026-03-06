@@ -1,0 +1,329 @@
+openapi: 3.0.3
+info:
+  title: Insurance Claims API
+  description: |
+    REST API for filing insurance claims and tracking claim status.
+    This API supports the customer self-service journey, enabling existing policyholders
+    to submit claims and monitor their status through a timeline-based workflow.
+    
+    **Use Case**: Customer Self-Service / Claim Journey
+    
+    This API can be published through WSO2 API Manager to enable:
+    - Authentication and authorization for secure claim access
+    - Rate limiting to prevent abuse
+    - Analytics to track claim submission patterns and processing times
+    - API versioning as claim workflows evolve
+    - Request/response transformation for different client applications
+    - Caching for frequently accessed claim statuses
+    - Webhook notifications for claim status changes
+  version: 1.0.0
+  contact:
+    name: Insurance API Team
+    email: api-support@insurance.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:8081/api/v1
+    description: Local development server
+  - url: https://api.insurance.com/v1
+    description: Production server (example)
+
+tags:
+  - name: Claims
+    description: Claim submission and status tracking
+
+paths:
+  /claims:
+    post:
+      tags:
+        - Claims
+      summary: Submit a new insurance claim
+      description: |
+        Accepts a claim submission and returns a claim reference with an initial status timeline.
+        The claim progresses through stages: Submitted → Review → Inspection → Settlement.
+      operationId: submitClaim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimSubmissionRequest'
+            examples:
+              autoAccident:
+                summary: Auto accident claim
+                value:
+                  policyNumber: "POL-9001"
+                  customerName: "John Doe"
+                  incidentType: "auto-accident"
+                  incidentDate: "2026-03-01"
+                  description: "Minor rear-end collision in traffic."
+                  location: "Los Angeles, CA"
+              propertyDamage:
+                summary: Property damage claim
+                value:
+                  policyNumber: "POL-9002"
+                  customerName: "Jane Smith"
+                  incidentType: "property-damage"
+                  incidentDate: "2026-03-02"
+                  description: "Water damage from burst pipe in kitchen."
+                  location: "New York, NY"
+      responses:
+        '201':
+          description: Claim submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimSubmissionResponse'
+              example:
+                claimId: "CLM-5001"
+                status: "Submitted"
+                message: "Claim submitted successfully."
+                timeline:
+                  - stage: "Submitted"
+                    status: "completed"
+                  - stage: "Review"
+                    status: "in-progress"
+                  - stage: "Inspection"
+                    status: "pending"
+                  - stage: "Settlement"
+                    status: "pending"
+        '400':
+          description: Bad request - Invalid input or validation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidJson:
+                  summary: Invalid JSON payload
+                  value:
+                    error: "Invalid JSON payload"
+                    message: "Failed to parse request body"
+                validationError:
+                  summary: Validation failure
+                  value:
+                    error: "Validation failed"
+                    message: "Policy number is required"
+
+  /claims/{claimId}:
+    get:
+      tags:
+        - Claims
+      summary: Get claim status by ID
+      description: |
+        Retrieves the current status and timeline for a specific claim.
+        Returns detailed claim information including all timeline stages and their statuses.
+      operationId: getClaimStatus
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          description: Unique identifier for the claim
+          schema:
+            type: string
+          examples:
+            example1:
+              value: "CLM-5001"
+              summary: Auto accident claim
+            example2:
+              value: "CLM-5002"
+              summary: Property damage claim
+      responses:
+        '200':
+          description: Claim found and returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimStatusResponse'
+              examples:
+                inReview:
+                  summary: Claim in review stage
+                  value:
+                    claimId: "CLM-5001"
+                    policyNumber: "POL-9001"
+                    customerName: "John Doe"
+                    incidentType: "auto-accident"
+                    status: "Review"
+                    lastUpdated: "2026-03-06T10:30:00Z"
+                    timeline:
+                      - stage: "Submitted"
+                        status: "completed"
+                      - stage: "Review"
+                        status: "in-progress"
+                      - stage: "Inspection"
+                        status: "pending"
+                      - stage: "Settlement"
+                        status: "pending"
+                inInspection:
+                  summary: Claim in inspection stage
+                  value:
+                    claimId: "CLM-5002"
+                    policyNumber: "POL-9002"
+                    customerName: "Jane Smith"
+                    incidentType: "property-damage"
+                    status: "Inspection"
+                    lastUpdated: "2026-03-05T14:20:00Z"
+                    timeline:
+                      - stage: "Submitted"
+                        status: "completed"
+                      - stage: "Review"
+                        status: "completed"
+                      - stage: "Inspection"
+                        status: "in-progress"
+                      - stage: "Settlement"
+                        status: "pending"
+        '404':
+          description: Claim not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Claim not found"
+                message: "No claim found with ID: CLM-9999"
+
+components:
+  schemas:
+    ClaimSubmissionRequest:
+      type: object
+      required:
+        - policyNumber
+        - customerName
+        - incidentType
+        - incidentDate
+        - description
+        - location
+      properties:
+        policyNumber:
+          type: string
+          description: Policy number associated with the claim
+          example: "POL-9001"
+        customerName:
+          type: string
+          description: Full name of the policyholder
+          example: "John Doe"
+        incidentType:
+          type: string
+          description: Type of incident (e.g., auto-accident, property-damage, theft)
+          example: "auto-accident"
+        incidentDate:
+          type: string
+          format: date
+          description: Date when the incident occurred (YYYY-MM-DD format)
+          example: "2026-03-01"
+        description:
+          type: string
+          description: Detailed description of the incident
+          example: "Minor rear-end collision in traffic."
+        location:
+          type: string
+          description: Location where the incident occurred
+          example: "Los Angeles, CA"
+
+    ClaimSubmissionResponse:
+      type: object
+      required:
+        - claimId
+        - status
+        - message
+        - timeline
+      properties:
+        claimId:
+          type: string
+          description: Unique identifier for the submitted claim
+          example: "CLM-5001"
+        status:
+          type: string
+          description: Current status of the claim
+          example: "Submitted"
+        message:
+          type: string
+          description: Confirmation message
+          example: "Claim submitted successfully."
+        timeline:
+          type: array
+          description: Status timeline showing all claim stages
+          items:
+            $ref: '#/components/schemas/TimelineStage'
+
+    ClaimStatusResponse:
+      type: object
+      required:
+        - claimId
+        - policyNumber
+        - customerName
+        - incidentType
+        - status
+        - lastUpdated
+        - timeline
+      properties:
+        claimId:
+          type: string
+          description: Unique identifier for the claim
+          example: "CLM-5001"
+        policyNumber:
+          type: string
+          description: Policy number associated with the claim
+          example: "POL-9001"
+        customerName:
+          type: string
+          description: Full name of the policyholder
+          example: "John Doe"
+        incidentType:
+          type: string
+          description: Type of incident
+          example: "auto-accident"
+        status:
+          type: string
+          description: Current status of the claim (Submitted, Review, Inspection, Settlement)
+          example: "Review"
+        lastUpdated:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the last status update
+          example: "2026-03-06T10:30:00Z"
+        timeline:
+          type: array
+          description: Complete status timeline showing all claim stages and their statuses
+          items:
+            $ref: '#/components/schemas/TimelineStage'
+
+    TimelineStage:
+      type: object
+      required:
+        - stage
+        - status
+      properties:
+        stage:
+          type: string
+          description: Name of the claim processing stage
+          enum:
+            - Submitted
+            - Review
+            - Inspection
+            - Settlement
+          example: "Review"
+        status:
+          type: string
+          description: Status of this stage
+          enum:
+            - completed
+            - in-progress
+            - pending
+          example: "in-progress"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type or category
+          example: "Validation failed"
+        message:
+          type: string
+          description: Detailed error message
+          example: "Policy number is required"
