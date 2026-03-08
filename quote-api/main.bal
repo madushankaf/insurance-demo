@@ -2,10 +2,10 @@ import ballerina/http;
 import ballerina/log;
 
 // Service port configuration
-configurable int servicePort = 8080;
+configurable int servicePort = 8082;
 
 // HTTP service for Quote API
-service /api/v1 on new http:Listener(servicePort) {
+service / on new http:Listener(servicePort) {
     
     resource function post quotes/auto(http:Request req) returns http:Response {
         // Parse request payload

@@ -24,8 +24,8 @@ info:
     name: Proprietary
 
 servers:
-  - url: https://363b9444-0d63-44da-9d79-bba9abe58bfb-prod.e1-us-east-azure.choreoapis.dev/all-state-insu/claims-api/v1/
-    description: Production server
+  - url: https://jamir-dirgelike-repentantly.ngrok-free.dev/
+    description: Local development server
 
 tags:
   - name: Claims

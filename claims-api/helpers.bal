@@ -1,7 +1,6 @@
 
-// In-memory storage for claims (hardcoded for demo)
-// TODO: Replace with actual database or claim management system
-final map<ClaimStatusResponse> CLAIMS_STORE = {
+// In-memory storage for claims (mutable so newly submitted claims can be tracked)
+map<ClaimStatusResponse> CLAIMS_STORE = {
     "CLM-5001": {
         claimId: "CLM-5001",
         policyNumber: "POL-9001",
@@ -90,9 +89,7 @@ public function getClaimById(string claimId) returns ClaimStatusResponse? {
     return CLAIMS_STORE[claimId];
 }
 
-// Helper function to store claim (for demo, we'll add to hardcoded store)
-// TODO: Replace with actual database insert
+// Store a new claim in memory so it can be retrieved later
 public function storeClaim(ClaimStatusResponse claim) {
-    // In a real implementation, this would persist to database
-    // For demo purposes, we're using the hardcoded map above
+    CLAIMS_STORE[claim.claimId] = claim;
 }

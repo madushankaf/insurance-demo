@@ -6,7 +6,7 @@ import ballerina/lang.value;
 configurable int servicePort = 8081;
 
 // HTTP service for Claims API
-service /api/v1 on new http:Listener(servicePort) {
+service / on new http:Listener(servicePort) {
     
     resource function post claims(http:Request req) returns http:Response {
         // Parse request payload
@@ -45,6 +45,18 @@ service /api/v1 on new http:Listener(servicePort) {
             message: "Claim submitted successfully.",
             timeline: timeline
         };
+
+        // Persist the claim in memory so it can be retrieved via GET /claims/{claimId}
+        ClaimStatusResponse claimRecord = {
+            claimId: claimId,
+            policyNumber: claimRequest.policyNumber,
+            customerName: claimRequest.customerName,
+            incidentType: claimRequest.incidentType,
+            status: "Submitted",
+            lastUpdated: getCurrentTimestamp(),
+            timeline: timeline
+        };
+        storeClaim(claimRecord);
         
         log:printInfo("Claim submitted successfully", claimId = claimId, policyNumber = claimRequest.policyNumber);
         
